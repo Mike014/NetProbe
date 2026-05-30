@@ -27,7 +27,7 @@ void print_config(const Config &config) noexcept
                              config.address, config.port, config.n_bytes);
 }
 
-struct Config get_config(int argc, char *argv[])
+struct Config get_config(int argc, char* argv[])
 {
     struct Config config;
     config.n_bytes = DEFAULT_N_BYTES;
