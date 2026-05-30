@@ -7,7 +7,4 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-find_package(Threads REQUIRED)
-find_package(CURL REQUIRED)
-
-add_subdirectory(phase1_tcp)
+add_subdirectory(src)

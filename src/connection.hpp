@@ -88,7 +88,7 @@ struct Config get_config(int argc, char *argv[])
 // Reads from the given socket into the given buffer n_bytes bytes
 int receive_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
 {
-    int bytes_read = 0;
+    size_t bytes_read = 0; 
     int r;
 
     while (bytes_read < n_bytes)
@@ -110,7 +110,7 @@ int receive_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
 // Writes n_bytes from the given buffer to the given socekt
 int send_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
 {
-    int bytes_sent = 0;
+    size_t bytes_sent = 0;
     int r;
     while (bytes_sent < n_bytes)
     {
