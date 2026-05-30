@@ -1,3 +1,7 @@
+/*
+ *  A server receiving and sending back a message multiple times.
+ *  Usage: ./server.out -p <port> -n <message_size (bytes)>
+ */
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <cstdlib>
@@ -16,7 +20,7 @@ int main(int argc, char *argv[])
     struct Config config = get_config(argc, argv);
     std::vector<uint8_t> buffer(config.n_bytes);
     struct sockaddr_in serv_addr, cli_addr;
-
+    
     // Create listening socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == INVALID_SOCKET)
@@ -30,7 +34,7 @@ int main(int argc, char *argv[])
     std::cout << std::format("Server ready, listening on port {}\n", config.port) << std::flush;
     listen(sockfd, 5);
     int clilen = sizeof(cli_addr);
-
+    
     // Accept connection and set nonblocking and nodelay
     newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
     if (newsockfd == INVALID_SOCKET)
@@ -39,7 +43,7 @@ int main(int argc, char *argv[])
     ioctlsocket(newsockfd, FIONBIO, &mode);
     int flag = 1;
     setsockopt(newsockfd, IPPROTO_TCP, TCP_NODELAY, (void *)&flag, sizeof(int));
-
+     
     // Receive-send loop
     std::cout << "Connection accepted, ready to recevive!\n"
               << std::endl;
@@ -51,7 +55,8 @@ int main(int argc, char *argv[])
 
     std::cout << "Done!\n"
               << std::endl;
-
+    
+    // Clean state          
     closesocket(sockfd);
     closesocket(newsockfd);
 

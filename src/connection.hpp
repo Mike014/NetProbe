@@ -27,7 +27,8 @@ void print_config(const Config &config) noexcept
                              config.address, config.port, config.n_bytes);
 }
 
-struct Config get_config(int argc, char* argv[])
+// Parse command line args to extract config. Default values used when arg missing
+struct Config get_config(int argc, char *argv[])
 {
     struct Config config;
     config.n_bytes = DEFAULT_N_BYTES;
@@ -59,6 +60,7 @@ struct Config get_config(int argc, char* argv[])
     std::exit(EXIT_FAILURE);
 }
 
+// Starts a measure
 [[nodiscard]] uint64_t rdtsc() noexcept
 {
 #ifdef _MSC_VER
@@ -70,6 +72,7 @@ struct Config get_config(int argc, char* argv[])
 #endif
 }
 
+// Obtains ticks successive to a rdtsc() call
 [[nodiscard]] uint64_t rdtscp() noexcept
 {
 #ifdef _MSC_VER
@@ -82,6 +85,7 @@ struct Config get_config(int argc, char* argv[])
 #endif
 }
 
+// Reads from the given socket into the given buffer n_bytes bytes
 int receive_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
 {
     int bytes_read = 0;
@@ -103,6 +107,7 @@ int receive_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
     return bytes_read;
 }
 
+// Writes n_bytes from the given buffer to the given socekt
 int send_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
 {
     int bytes_sent = 0;
