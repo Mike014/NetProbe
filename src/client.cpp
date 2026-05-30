@@ -9,6 +9,8 @@
 #include <iostream>
 #include <format>
 #include <vector>
+#include <thread>
+#include <chrono>
 #include "connection.hpp"
 
 int main(int argc, char *argv[])
@@ -16,7 +18,7 @@ int main(int argc, char *argv[])
     WSADATA WSAData;
     if (WSAStartup(MAKEWORD(2, 2), &WSAData) != 0)
         panic("WSAStartup failed");
-        
+
     SOCKET sockfd;
     struct sockaddr_in serv_addr;
     struct hostent *server;
@@ -73,7 +75,17 @@ int main(int argc, char *argv[])
     std::cout << "Done!\nSummary: (time_send,\ttime_recv)\n";
     for (size_t i = 0; i < N_ROUNDS; i++)
     {
+        [[maybe_unused]] uint64_t rtt = times_send[i] + times_recv[i];
+        bool spike_send = times_send[i] > 50000;
+        bool spike_recv = times_recv[i] > 50000;
+
+        if (spike_send || spike_recv)
+            std::cout << "\033[31m"; // rosso
+        else
+            std::cout << "\033[32m"; // verde
+
         std::cout << std::format("({},\t{})\n", times_send[i], times_recv[i]);
+        std::cout << "\033[0m"; // reset
     }
 
     WSACleanup();
