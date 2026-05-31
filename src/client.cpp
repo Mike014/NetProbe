@@ -1,93 +1,66 @@
 /*
- *  A client timing the roundtrip time of a message sent to a server multiple times.
- *  Usage: ./client.out -a <address> -p <port> -b <message_size (bytes)>
+ *  A client sending a message to a server and receiving it back multiple times.
+ *  Usage: ./client -a <address> -p <port> -b <message_size (bytes)>
  */
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <cstdlib>
-#include <cstring>
+
 #include <iostream>
 #include <format>
-#include <vector>
-#include <thread>
-#include <chrono>
+#include <cstdlib>
+#include <cstring>
 #include "connection.hpp"
 
 int main(int argc, char *argv[])
 {
-    WSADATA WSAData;
-    if (WSAStartup(MAKEWORD(2, 2), &WSAData) != 0)
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
         panic("WSAStartup failed");
 
-    SOCKET sockfd;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-
+    socket_t sockfd;
     struct Config config = get_config(argc, argv);
+    std::vector<uint8_t> buffer(config.n_bytes);
+    struct sockaddr_in serv_addr;
 
-    // Init buffers
-    std::vector<uint8_t> rbuffer(config.n_bytes);
-    std::vector<uint8_t> wbuffer(config.n_bytes);
+    // Fill buffer with dummy data
+    for (size_t i = 0; i < config.n_bytes; i++)
+        buffer[i] = static_cast<uint8_t>(i & 0xFF);
 
+    // Create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == INVALID_SOCKET)
+    if (!SOCKET_VALID(sockfd))
         panic("ERROR opening socket");
-    server = gethostbyname(config.address.c_str());
-    if (server == NULL)
-    {
-        std::cerr << "ERROR, no such host\n";
-        std::exit(EXIT_FAILURE);
-    }
+
     std::memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    std::memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-    serv_addr.sin_port = htons(config.port);
+    serv_addr.sin_port   = htons(config.port);
 
-    // Connect and set nonblocking and nodelay
+    if (inet_pton(AF_INET, config.address.c_str(), &serv_addr.sin_addr) <= 0)
+    {
+        struct hostent *he = gethostbyname(config.address.c_str());
+        if (he == nullptr)
+            panic("ERROR resolving hostname");
+        std::memcpy(&serv_addr.sin_addr, he->h_addr_list[0], he->h_length);
+    }
+
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == SOCKET_ERROR)
-        panic("ERROR connecting");
-    u_long mode = 1;
-    ioctlsocket(sockfd, FIONBIO, &mode);
+        panic("ERROR connecting to server");
+
     int flag = 1;
     setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (const char *)&flag, sizeof(int));
-    std::cout << "Connection successful! Starting...\n"
-              << std::flush;
 
-    // Timed send-receive loop
-    std::vector<uint64_t> times_send(N_ROUNDS);
-    std::vector<uint64_t> times_recv(N_ROUNDS);
-    for (size_t i = 0; i < N_ROUNDS; i++)
+    std::cout << std::format("Connected to {}:{}, starting send-receive loop\n",
+                             config.address, config.port) << std::flush;
+
+    // Send-receive loop
+    for (int i = 0; i < N_ROUNDS; i++)
     {
-
-        uint64_t tstart = rdtscp();
-
-        send_message(config.n_bytes, sockfd, wbuffer.data());
-        uint64_t tsend = rdtsc();
-        receive_message(config.n_bytes, sockfd, rbuffer.data());
-
-        uint64_t tend = rdtsc();
-
-        times_send[i] = tsend - tstart;
-        times_recv[i] = tend - tsend;
+        send_message(config.n_bytes, sockfd, buffer.data());
+        receive_message(config.n_bytes, sockfd, buffer.data());
     }
 
-    closesocket(sockfd);
-    std::cout << "Done!\nSummary: (time_send,\ttime_recv)\n";
-    for (size_t i = 0; i < N_ROUNDS; i++)
-    {
-        [[maybe_unused]] uint64_t rtt = times_send[i] + times_recv[i];
-        bool spike_send = times_send[i] > 50000;
-        bool spike_recv = times_recv[i] > 50000;
+    std::cout << "Done!\n";
 
-        if (spike_send || spike_recv)
-            std::cout << "\033[31m"; // rosso
-        else
-            std::cout << "\033[32m"; // verde
-
-        std::cout << std::format("({},\t{})\n", times_send[i], times_recv[i]);
-        std::cout << "\033[0m"; // reset
-    }
-
+    CLOSE_SOCKET(sockfd);
     WSACleanup();
+
     return 0;
 }

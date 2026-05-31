@@ -1,3 +1,32 @@
+#ifdef _WIN32
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    using socket_t = SOCKET;
+    #define CLOSE_SOCKET closesocket
+    #define SOCKET_VALID(s) ((s) != INVALID_SOCKET)
+#else
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <netinet/tcp.h>
+    #include <arpa/inet.h>
+    #include <netdb.h>
+    #include <unistd.h>
+    #include <sys/ioctl.h>
+    using socket_t = int;
+    #define INVALID_SOCKET -1
+    #define SOCKET_ERROR -1
+    #define CLOSE_SOCKET close
+    #define SOCKET_VALID(s) ((s) >= 0)
+    #define WSAGetLastError() errno
+    #define WSAEWOULDBLOCK EWOULDBLOCK
+    #define ioctlsocket ioctl
+    #define FIONBIO 0x5421
+    #define WSADATA int
+    #define WSAStartup(a,b) 0
+    #define WSACleanup()
+    #define MAKEWORD(a,b) 0
+    using socklen_t_compat = socklen_t;
+#endif
 #include <cstdint>
 #include <cstdlib>
 #include <cerrno>
@@ -5,7 +34,6 @@
 #include <string>
 #include <vector>
 #include <chrono>
-#include <winsock2.h>
 #include <format>
 #include <cstring>
 
@@ -86,7 +114,7 @@ struct Config get_config(int argc, char *argv[])
 }
 
 // Reads from the given socket into the given buffer n_bytes bytes
-int receive_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
+int receive_message(size_t n_bytes, socket_t sockfd, uint8_t *buffer)
 {
     size_t bytes_read = 0; 
     int r;
@@ -108,7 +136,7 @@ int receive_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
 }
 
 // Writes n_bytes from the given buffer to the given socekt
-int send_message(size_t n_bytes, SOCKET sockfd, uint8_t *buffer)
+int send_message(size_t n_bytes, socket_t sockfd, uint8_t *buffer)
 {
     size_t bytes_sent = 0;
     int r;
