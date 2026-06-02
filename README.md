@@ -41,7 +41,7 @@ Output is printed in **real time** with ANSI color coding: green for normal late
 │   listen(port)                                  | |
 │   accept() → client_fd                          | |
 │   for i in 1..N_ROUNDS {                        │ │
-│       receive_message(client_fd, payload)  ←─────┘|
+│       receive_message(client_fd, payload)  ←────  |
 │       send_message(client_fd, payload)          |
 │   }                                             │
 └─────────────────────────────────────────────────┘
